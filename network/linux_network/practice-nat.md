@@ -1,0 +1,1 @@
+# Note about practice with firewall(nat, port forwading)
