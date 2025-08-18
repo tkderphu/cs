@@ -8,6 +8,7 @@
         <outputRelativeToContentRoot value="true" />
         <module name="chuong2-exercise" />
         <module name="chuong4" />
+        <module name="chat-app" />
       </profile>
     </annotationProcessing>
   </component>
