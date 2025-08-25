@@ -355,3 +355,4 @@ Content-Type: application/x-www-form-urlencoded
 | ------------------- | ----------------------- | -------------------------------- |
 | Public Client       | No                      | SPA, mobile apps                 |
 | Confidential Client | Yes                     | Backend servers, secure services |
+

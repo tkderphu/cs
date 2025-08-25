@@ -1,0 +1,21 @@
+@startuml
+class Animal
+class Dog
+interface Dao
+class UserDao
+class UserService
+Animal <|-- Dog
+Dao <|.. UserDao
+class Hotel
+class Room
+
+Hotel *-- Room
+
+Class Car
+Class Wheel
+
+Car o-- Wheel
+
+UserService --> UserDao
+
+@enduml

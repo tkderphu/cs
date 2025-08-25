@@ -1,5 +1,10 @@
 # Note about spring-oauth2-resourceserver
 
+# Authentication process
+
+<img src='img/authentication_process.png'/>
+
+
 # What is oauth and oauth2
 
 - OAuth(open authorization): it's an open standard that allows application(client) to access resources(your app data) on another service(resource server) without giving away your password

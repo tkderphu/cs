@@ -1,0 +1,10 @@
+@startuml
+
+usecase UC4
+actor wm3
+actor Admin
+actor "Use the application" as Use
+
+User <|-- Admin
+(Start) <|-- Use
+@enduml

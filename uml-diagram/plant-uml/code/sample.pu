@@ -1,0 +1,16 @@
+@startuml
+skinparam activity {
+    ' this is a comment
+    BackgroundColor White
+    BorderColor Black /' this is a comment '/
+    BorderColor Red  ' this is not a comment and this line is ignored
+}
+
+title Hello world\nExample
+
+start
+
+
+caption this is capton
+:foo1;
+@enduml
