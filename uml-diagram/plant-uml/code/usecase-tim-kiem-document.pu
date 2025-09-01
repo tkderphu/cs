@@ -1,0 +1,24 @@
+@startuml
+
+actor member
+actor reader
+
+member <|-- reader
+
+rectangle "Library System" {
+    usecase (login)
+    usecase (reader login) as readerLogin
+    usecase (search documents) as searchDocuments
+    usecase (display documents) as displayDocument
+    usecase (view detail document) as viewDetailDocument
+
+    login <|-- readerLogin
+    searchDocuments ..> readerLogin : <<Include>>
+    searchDocuments ..> displayDocument : <<Include>>
+    viewDetailDocument ..> displayDocument : <<Extend>>
+}
+
+member -- (login)
+reader -- searchDocuments
+
+@enduml

@@ -1,0 +1,29 @@
+@startuml
+
+actor member
+actor manager
+actor librarian
+
+member <|-- librarian
+librarian <|-- manager
+
+
+rectangle "Library System" {
+    usecase (login)
+    usecase (manager login) as managerLogin
+    usecase (view statistics) as viewStatistics
+    usecase (view Readers Borrowing Statistics) as viewReadersBorrowingStatistics
+    usecase (view detail reader statistics) as viewDetailReaderStatistic
+    usecase (view detail borrowing) as viewDetailBorrowing
+
+    login <|-- managerLogin
+    viewReadersBorrowingStatistics --|> viewStatistics
+    viewStatistics ..> managerLogin : <<Include>>
+    viewDetailBorrowing ..> viewDetailReaderStatistic : <<Extend>>
+    viewDetailReaderStatistic ..> viewReadersBorrowingStatistics : <<Extend>>
+}
+
+member -- (login)
+manager -- viewStatistics
+
+@enduml

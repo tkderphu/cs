@@ -1,5 +1,50 @@
 # Note about docker
 
+# 📑 Table of Contents
+
+- [Note about docker](#note-about-docker)
+- [What is docker](#what-is-docker)
+- [Docker engine](#docker-engine)
+- [Workflow of docker](#workflow-of-docker)
+- [Docker under the hood](#docker-under-the-hood)
+  - [1. Image](#1-image)
+    - [1.1.1. OverlayFS](#111-overlayfs)
+    - [1.1.2. Why use OverlayFS](#112-why-use-overlayfs)
+    - [1.1.3. Code example](#113-code-example)
+  - [1.2: Structure in Docker to build image](#12-structure-in-docker-to-build-image)
+  - [1.3: Build ubuntu container without docker](#13-build-ubuntu-container-without-docker)
+    - [1. Download ubutun root file system](#1-download-ubutun-root-file-system)
+    - [2. Create an isolated process with unshare](#2-create-an-isolated-process-with-unshare)
+    - [3. You're inside ubuntu](#3-youre-inside-ubuntu)
+  - [2. Network](#2-network)
+  - [3. Volume](#3-volume)
+    - [Use volume](#use-volume)
+    - [Type of volume](#type-of-volume)
+    - [Volume under the hood](#volume-under-the-hood)
+  - [4. Container](#4-container)
+  - [2. Linux features behind containers](#2-linux-featres-behind-containers)
+    - [1. Namespaces (process isolation)](#1-namespaces-process-isolation)
+    - [2. Cgroups (resource control)](#2-cgroups-resource-control)
+  - [3. File system](#3-file-system)
+  - [4. Network](#4-network)
+    - [1. Bridge network (default)](#1-bridge-network-default)
+    - [2. Host network](#2-host-network)
+    - [3. Overlay network](#3-overlay-network)
+    - [4. Macvlan](#4-macvlan)
+    - [5. Process lifecycle](#5-process-lifecycle)
+    - [6. How a container is created (under the hood)](#6-how-a-container-is-created-under-the-hood)
+
+- [Docker commands](#docker-commands)
+  - [1. Docker system commands](#1-docker-system-commands)
+  - [2. Image commands](#2-image-commands)
+  - [3. Container commands](#3-container-commands)
+  - [4. Volume Commands](#4-volume-commands)
+  - [5. Network Commands](#5-network-commands)
+  - [6. Dockerfile Instructions (image build)](#6-dockerfile-instructions-image-build)
+  - [7. Logs / Debug](#7-logs--debug)
+  - [8. Summary of Internals](#8-summary-of-internals)
+
+
 # What is docker
 
 Docker is platform(app) using api from `docker engine` to mange images, networks, containers, volumes
@@ -266,3 +311,238 @@ mkdir -p /tmp/ubuntu/data
 mount --bind /tmp/host-data /tmp/ubuntu/data
 ```
 ## 4. Container
+
+A container is a lightweight, portable enviroment that runs application with:
+
+- Isolated processes
+- Separate filesystem
+- Isolated network interfaces
+- Independent hostname/UTS
+
+| Feature      | VM                        | Container           |
+| ------------ | ------------------------- | ------------------- |
+| Kernel       | Separate (full OS)        | Shared with host    |
+| Size         | Large (GBs)               | Small (MBs)         |
+| Startup time | Slow (seconds to minutes) | Fast (milliseconds) |
+| Isolation    | Full hardware virtual     | Namespace + cgroups |
+
+Containers share the host kernel but isolate everything else.
+
+## 2. Linux featres behind containers
+
+Docker (and most container runtimes) rely on two main kernel features:
+
+### 1. Namespaces (process isolation)
+
+- pid → process IDs inside container
+
+- mnt → mount points (rootfs)
+
+- net → network interfaces
+
+- uts → hostname and domain
+
+- ipc → interprocess communication
+
+- user → UID/GID mapping
+
+- cgroup → resource limitation
+
+### 2. Cgroups (resource control)
+
+- Limit CPU, memory, IO usage
+
+- Track container resource usage
+
+- Prevent one container from starving others
+
+## 3. File system
+
+Containers use a copy-on-write (CoW) filesystem:
+
+- OverlayFS is most common
+
+    - Base layers come from images (read-only)
+
+    - Container layer is read-write, on top
+
+- Benefits:
+
+- Lightweight → multiple containers can share same base image
+
+- Efficient → only changes are stored in container layer
+
+Optional volumes for persistent data:
+
+    - Mounted outside overlayfs
+
+    - Direct host access
+
+    - Shared between containers
+
+## 4. Network
+
+Containers can have:
+
+### 1. Bridge network (default)
+
+- Each container gets a veth interface
+
+- Connected to host bridge (like docker0)
+
+- Host NAT provides internet access
+
+### 2. Host network
+
+- Container shares host’s network stack
+
+- No isolation
+
+### 3. Overlay network
+
+- Used in multi-host Docker swarm
+
+- Encapsulated traffic via VXLAN
+
+### 4. Macvlan
+
+- Each container gets a unique MAC/IP on LAN
+
+### 5. Process lifecycle
+
+- Container runs processes like a normal Linux process, but in isolated PID namespace
+
+- The first process (PID 1) in the container is special:
+
+    - Handles signals (like Ctrl+C, termination)
+
+    - If PID 1 dies, the container exits
+
+- Processes cannot see host processes (unless using host PID namespace)
+
+### 6. How a container is created (under the hood)
+
+Simplified steps:
+
+- Pull an image (tarball with layers)
+
+- Create a container layer on top (read-write)
+
+- Create namespaces:
+
+    - PID, mount, network, UTS, IPC, user
+
+- Mount overlayfs (image layers + container layer) as rootfs
+
+- Setup network namespace + interfaces
+
+- Setup cgroups (CPU, memory, blkio limits)
+
+- Launch init process (e.g., /bin/bash or your app) in the namespaces
+
+
+# Docker commands
+
+# 1. Docker system commands
+
+| Command               | Usage                                | Details / Under the Hood                                                                                                                             |
+| --------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docker version`      | Shows Docker client & server version | Queries Docker daemon via API, returns info about versions of components.                                                                            |
+| `docker info`         | Shows system-wide info               | Returns info about images, containers, volumes, networks, storage driver (overlayfs), cgroup info, kernel version.                                   |
+| `docker system df`    | Shows disk usage                     | Shows space used by images, containers, volumes, and build cache.                                                                                    |
+| `docker system prune` | Deletes unused objects               | Cleans up dangling containers, images, networks, and optionally volumes. Docker removes overlayfs layers, deletes mount points, and cleans metadata. |
+
+## 2. Image commands
+
+| Command                       | Usage                        | Under the Hood                                                                                                                                 |
+| ----------------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docker pull <image>`         | Download image from registry | Docker pulls image layers (tarballs) from registry. Layers are stored in `/var/lib/docker` and indexed by content hash.                        |
+| `docker images`               | List local images            | Queries Docker’s local storage driver (overlayfs layers + metadata) to display available images.                                               |
+| `docker rmi <image>`          | Remove image                 | Deletes image metadata and layer references. Layers are only deleted if no container uses them.                                                |
+| `docker build -t <name> .`    | Build image from Dockerfile  | Docker parses Dockerfile, executes each instruction in a temporary container, stores changes as **layer** (overlayfs), commits layer to image. |
+| `docker tag <image> <newtag>` | Retag image                  | Updates image metadata. No copy of filesystem layer; only new reference.                                                                       |
+| `docker push <image>`         | Push image to registry       | Pushes image layers (tarballs) to registry, layer-by-layer, only new layers sent.                                                              |
+
+
+Under the hood:
+
+- Docker image = stacked overlayfs layers
+
+- Each Dockerfile instruction (RUN, COPY) creates a new read-only layer
+
+- Container adds read-write layer on top when running
+
+## 3. Container commands
+
+| Command                             | Usage                        | Under the Hood                                                                                                                                                            |
+| ----------------------------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docker run <image>`                | Create and start container   | Docker creates container namespace (PID, mount, network, UTS, IPC, user), allocates overlayfs writable layer, sets up network, cgroups, mounts volumes, and starts PID 1. |
+| `docker ps`                         | List running containers      | Queries Docker daemon, displays container ID, name, status, ports, network, image.                                                                                        |
+| `docker ps -a`                      | List all containers          | Includes stopped containers, info comes from Docker metadata.                                                                                                             |
+| `docker stop <container>`           | Stop container               | Sends SIGTERM to PID 1, waits, then SIGKILL. Overlayfs layer remains; container paused.                                                                                   |
+| `docker start <container>`          | Start stopped container      | Restores namespace, mounts overlayfs, reattaches network, restarts PID 1.                                                                                                 |
+| `docker restart <container>`        | Stop + start                 | Combines stop/start sequence.                                                                                                                                             |
+| `docker rm <container>`             | Remove container             | Deletes container overlayfs layer, unmounts volumes, removes metadata.                                                                                                    |
+| `docker exec -it <container> <cmd>` | Run command inside container | Docker enters container namespaces (PID, mount, net, etc.) and executes command in running container.                                                                     |
+Namespaces and overlayfs are key:
+
+- Overlayfs = container layer
+
+- Namespaces = isolation
+
+- cgroups = resource limits
+
+## 4. Volume Commands
+
+| Command                        | Usage                       | Under the Hood                                                                                                   |
+| ------------------------------ | --------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `docker volume create <name>`  | Create volume               | Creates directory in `/var/lib/docker/volumes/<name>/_data` with metadata `config.json`.                         |
+| `docker volume ls`             | List volumes                | Shows Docker-managed volumes.                                                                                    |
+| `docker volume inspect <name>` | Show volume info            | Returns mount path and container references.                                                                     |
+| `docker volume rm <name>`      | Delete volume               | Deletes volume directory and metadata. Data inside host filesystem is gone.                                      |
+| `docker run -v <volume>:/path` | Mount volume into container | Uses **bind mount** under the hood: host path `/var/lib/docker/volumes/<volume>/_data` → container path `/path`. |
+
+## 5. Network Commands
+
+| Command                                           | Usage                       | Under the Hood                                                       |
+| ------------------------------------------------- | --------------------------- | -------------------------------------------------------------------- |
+| `docker network create <name>`                    | Create network              | Creates Linux bridge or overlay network, sets up subnet, gateway.    |
+| `docker network ls`                               | List networks               | Shows Docker-managed networks.                                       |
+| `docker network inspect <name>`                   | Network info                | Returns container attachments, IPAM config, bridge info.             |
+| `docker network connect <network> <container>`    | Attach container to network | Creates veth pair, attaches container namespace interface to bridge. |
+| `docker network disconnect <network> <container>` | Detach container            | Removes veth interface from container network namespace.             |
+
+
+## 6. Dockerfile Instructions (image build)
+
+
+| Instruction        | Usage                     | How it works under the hood                                                           |
+| ------------------ | ------------------------- | ------------------------------------------------------------------------------------- |
+| `FROM <image>`     | Base image                | Pulls base layers, sets initial rootfs.                                               |
+| `RUN <cmd>`        | Execute command           | Runs command inside temporary container, commits overlayfs layer.                     |
+| `COPY <src> <dst>` | Copy files                | Adds files from build context into temporary container layer.                         |
+| `ADD <src> <dst>`  | Like COPY + tar/extract   | Adds and optionally unpacks archives.                                                 |
+| `CMD`              | Default container command | Stored in image metadata, executed by default if no command provided in `docker run`. |
+| `ENTRYPOINT`       | Fixed container command   | Image metadata, always executed (can combine with CMD arguments).                     |
+| `WORKDIR`          | Set working directory     | Mounts and sets container current working dir.                                        |
+| `EXPOSE`           | Document ports            | Metadata only; does not open firewall.                                                |
+
+## 7. Logs / Debug
+
+| Command                      | Usage                        | Details                                                       |
+| ---------------------------- | ---------------------------- | ------------------------------------------------------------- |
+| `docker logs <container>`    | Show container stdout/stderr | Docker attaches to container’s stdout/stderr pipes.           |
+| `docker attach <container>`  | Connect to running container | Connects terminal to container namespace TTY.                 |
+| `docker inspect <container>` | Low-level metadata           | Shows overlayfs mount, namespaces, cgroups, network, volumes. |
+
+## 8. Summary of Internals
+
+- Images: stacked overlayfs layers
+
+- Containers: namespaces + cgroups + overlayfs + volumes + network
+
+- Volumes: bind mounts from host, persistent storage
+
+- Network: network namespaces, veth pairs, bridges, NAT
+
+- Runtime: Docker daemon + containerd + runc (creates Linux process with isolation)
