@@ -1,10 +1,7 @@
 @startuml
-
 actor member
 actor reader
-
 member <|-- reader
-
 rectangle "Library System" {
     usecase (login)
     usecase (reader login) as readerLogin
@@ -17,8 +14,6 @@ rectangle "Library System" {
     searchDocuments ..> displayDocument : <<Include>>
     viewDetailDocument ..> displayDocument : <<Extend>>
 }
-
 member -- (login)
 reader -- searchDocuments
-
 @enduml

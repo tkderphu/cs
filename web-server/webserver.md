@@ -594,3 +594,89 @@ server {
 ```
 
 => put access_log and error_log inside server
+
+## Load balancing
+
+## 1. upstream block
+
+- `upstream` is a block in Nginx config that defines a group of backend servers
+- Intead of proxying directly to single IP/port, you give it a name, and nginx will pick one of the servers inside
+
+```
+http {
+    upstream backend_app {
+        server 127.0.0.1:3000;
+        server 127.0.0.1:3001;
+        server 127.0.0.1:3002;
+    }
+
+    server {
+        listen 80;
+        location / {
+            proxy_pass http://backend_app;
+        }
+    }
+}
+```
+
+=> When a request comes in:
+- Client => Nginx
+- Nginx => forwards to one of the servers in `backend_app`
+
+## Method
+
+Nginx support serveral method for load balancing
+
+1. Round robin(default) => evenly rotates between servers
+
+```
+upstream backend {
+    server app1:3000;
+    server app2:3000;
+}
+```
+
+2. Least connections => sends new request to the server with the fewest active connections
+
+```
+upstream backend {
+    least_conn;
+    server app1:3000;
+    server app2:3000;
+}
+```
+
+3. IP hash => same client ip always goes to the same backend
+
+```
+upstream backend {
+    ip_hash;
+    server app1:3000;
+    server app2:3000;
+}
+```
+
+
+4. Weighted => `app1` gets 3x more requests then `app2`
+
+```
+upstream backend {
+    server app1:3000 weight=3;
+    server app2:3000 weight=1;
+}
+```
+
+## Server options
+
+Inside `upstream`, each `server` can have parameters:
+
+```
+upstream backend {
+    server 127.0.0.1:3000 max_fails=3 fail_timeout=30s;
+    server 127.0.0.1:3001 backup;
+}
+```
+
+- `max_fails=3 fail_timeout=30s` → mark server as unavailable after 3 fails in 30s.
+
+- `backup` → only used if all others fail.

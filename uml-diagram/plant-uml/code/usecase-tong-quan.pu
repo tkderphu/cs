@@ -1,0 +1,46 @@
+@startuml
+
+actor Reader
+actor Member
+actor Librarian
+actor Manager
+
+
+Member <|-- Reader
+Member <|-- Librarian
+Librarian <|-- Manager
+
+rectangle "Library System" {
+    usecase "Login" as login
+    usecase "Change password" as changePassword
+    usecase "Logout" as logout
+    usecase "Manage readers" as manageReaders
+    usecase "Borrow documents" as borrowDocuments
+    usecase "Return documents" as returnDocuments
+    usecase "Import documents" as importDocuments
+    usecase "Reader search" as readerSearch
+    usecase "Search documents" as searchDocuments
+    usecase "Librarian search" as librarianSearch
+    usecase "Manage vendors" as manageVendors
+    usecase "Update reader info" as updateReaderInfo
+    usecase "Manage documents" as manageDocuments
+    usecase "View documents statistic" as viewDocumentStatistic
+
+    searchDocuments <|-- readerSearch
+    searchDocuments <|-- librarianSearch
+}
+
+
+Librarian -- manageReaders
+Librarian -- borrowDocuments
+Librarian -- returnDocuments
+Librarian -- importDocuments
+Librarian -- librarianSearch
+Librarian -- manageVendors
+Librarian -- manageDocuments
+Manager -- viewDocumentStatistic
+Reader -- borrowDocuments
+Reader -- returnDocuments
+Reader -- readerSearch
+Reader -- updateReaderInfo
+@enduml
