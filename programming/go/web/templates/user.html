@@ -1,0 +1,17 @@
+{{define "content"}}
+<h2>User List</h2>
+
+<table border="1" cellpadding="5">
+    <tr>
+        <th>Username</th>
+        <th>Role</th>
+    </tr>
+
+    {{range .Users}}
+    <tr>
+        <td>{{.Username}}</td>
+        <td>{{.Role}}</td>
+    </tr>
+    {{end}}
+</table>
+{{end}}

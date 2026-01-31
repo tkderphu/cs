@@ -158,3 +158,71 @@ sudo ovs-vsctl add-port br0 vxlan0 -- set interface vxlan0 type=vxlan \
 ```
 
 `VNI (key=1000) must match on both sides.`
+
+# Practice advanced
+
+
+Server 1:
+- netns1: 192.168.10.0
+- netns2: 192.168.20.0
+
+Server 2:
+- netns1: 192.168.10.0
+- netns2: 192.168.20.0
+
+We want subnet on different server can comminucate with each other
+
+First create two netns inside servers
+
+```
+#server 1
+
+
+
+#server2
+```
+
+Create veth and connect to ovs each server
+
+```
+#server1
+
+
+#server2
+```
+
+create router for routing subnet:
+
+```
+#server1
+
+
+#server2
+```
+
+
+To netns both server can comminucate i will use vxlan
+
+- I will use vxlan 10
+
+First:
+- set remote server with router interface for subnet1: 192.168.10.0
+
+ ```
+ ovs-vsctl add-port router-s1 vxlan100 -- set interface vxlan100 type=vxlan \
+ options:remote_ip=10.0.0.2 options:key=100 options:dst_port=4789
+ ```
+
+
+- set remote server with router interface for subnet2: 192.168.10.0
+
+ ```
+ ovs-vsctl add-port router-s2 vxlan100 -- set interface vxlan100 type=vxlan \
+ options:remote_ip=10.0.0.2 options:key=100 options:dst_port=4789
+ ```
+
+
+with server 2 we also do the same
+
+=> netns1 in server1 will comminucate netns1 in server2
+
