@@ -70,6 +70,13 @@ You can run it again and again without breadking stuff
 
 run: ```ansible-playbook install-docker.yml```
 
+# Install ansible
+
+```
+apt update
+apt install ansible -y
+ansible --version
+```
 
 # Ansible scripts and structure
 
@@ -95,7 +102,7 @@ inventory.ini
 
 ```
 [vps]
-192.168.1.10 ansible_user=root
+192.168.1.10 ansible_user=root ansible_ssh_private_key_file=~/.ssh/id_rsa
 
 [web]
 web1 ansible_host=192.168.1.11 ansible_user=ubuntu

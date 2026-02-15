@@ -571,3 +571,6 @@ Logs	❌ No	Use a log system like Loki, ELK
 Traces	❌ No	Use tracing systems like Jaeger, Zipkin
 Labels/Tags	✅ Yes	Used for filtering and grouping
 Metric metadata	✅ Yes (limited)	HELP and TYPE sections from /metrics
+
+
+
