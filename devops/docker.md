@@ -44,6 +44,7 @@
   - [7. Logs / Debug](#7-logs--debug)
   - [8. Summary of Internals](#8-summary-of-internals)
 
+- [Docker Swarm](#docker-swarm)
 
 # What is docker
 
@@ -546,3 +547,293 @@ Namespaces and overlayfs are key:
 - Network: network namespaces, veth pairs, bridges, NAT
 
 - Runtime: Docker daemon + containerd + runc (creates Linux process with isolation)
+
+
+# Docker Swarm
+
+## WHAT IS
+
+Docker Swarm is Docker’s native container orchestration system that allows you to manage multiple Docker hosts as a single cluster.
+
+It turns many servers into one logical Docker engine.
+
+## Problem It Solves
+
+Without swarm:
+
+```
+Server 1 → docker run app1
+Server 2 → docker run app2
+Server 3 → docker run app3
+```
+
+Problems:
+
+- Manual deployment
+
+- No automatic failover
+
+- No load balancing
+
+- No service discovery
+
+With swarm:
+
+```
+docker service create --replicas 3 myapp
+```
+
+Swarm:
+
+- Distributes containers across nodes
+
+- Restarts if container dies
+
+- Load balances automatically
+
+- Provides internal DNS
+
+# Core Architecture (VERY IMPORTANT)
+
+Swarm cluster has 2 types of nodes:
+
+## 1. Manager Nodes
+
+Responsible for:
+
+- Cluster state
+
+- Scheduling
+
+- Raft consensus
+
+- API
+
+## 2. Worker Nodes
+
+Responsible for:
+
+Running containers only
+
+## Raft Consensus
+
+Swarm uses the Raft algorithm to maintain cluster state consistency.
+
+Key concepts:
+
+- Leader manager
+
+- Follower managers
+
+- Quorum (majority vote required)
+
+Example:
+
+If you have 3 managers:
+
+- Need 2 alive to function
+
+- If 2 down → cluster stops scheduling
+
+# Setting Up Swarm (Beginner Hands-on)
+
+## Step 1: Initialize Manager
+
+```
+docker swarm init --advertise-addr <manager-ip>
+```
+
+You get a join token.
+
+## Step 2: Add Worker
+
+On worker node:
+
+```
+docker swarm join --token <token> <manager-ip>:2377
+```
+
+## Step 3: Check Nodes
+
+```
+docker node ls
+```
+
+# Services – The Heart of Swarm
+
+In Swarm you don’t run containers.
+
+You run services.
+
+- Container = single instance
+- Service = desired state definition
+
+Example:
+
+```
+docker service create \
+  --name web \
+  --replicas 3 \
+  -p 80:80 \
+  nginx
+```
+
+This:
+
+- Creates 3 containers
+
+- Distributes them
+
+- Recreates if crash
+
+# Scheduling Deep Dive
+
+Swarm scheduler considers:
+
+- CPU
+
+- Memory
+
+- Constraints
+
+- Node labels
+
+- Resource availability
+
+# Node Labels (VERY IMPORTANT)
+
+Example:
+
+```
+docker node update --label-add type=compute worker1
+```
+
+Then deploy:
+
+```
+docker service create \
+  --constraint 'node.labels.type==compute' \
+  nginx
+```
+
+This is useful in your private cloud design:
+
+- Compute nodes
+
+- Storage nodes
+
+- Network nodes
+
+# Networking in Swarm (CRITICAL)
+
+Swarm provides:
+
+## 1. Overlay Network
+
+Multi-host network using VXLAN.
+
+```
+docker network create \
+  --driver overlay \
+  mynet
+```
+
+All containers across nodes communicate privately.
+
+## 2. Internal DNS
+
+Service name = DNS name.
+
+Example:
+
+- web → resolves automatically
+
+- No need for external DNS inside cluster.
+
+## 3. Routing Mesh (Magic Feature)
+
+When you publish port:
+
+```
+-p 80:80
+```
+
+Swarm:
+
+- Opens port 80 on ALL nodes
+
+- Load balances automatically
+
+- Forwards traffic internally
+
+- Even if container runs on another node.
+
+# Deploying Stack (Production Way)
+
+Instead of manual commands, use Compose file:
+
+```
+version: "3.9"
+
+services:
+  web:
+    image: nginx
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: on-failure
+```
+
+Deploy:
+
+```
+docker stack deploy -c docker-compose.yml mystack
+```
+
+Now you manage:
+
+- Multi-service apps
+
+- Version control infra
+
+- CI/CD friendly
+
+# Scaling
+
+Scale service:
+
+```
+docker service scale web=10
+```
+
+Swarm:
+
+- Automatically distributes containers
+
+- Maintains desired state
+
+# Secrets & Configs
+
+## Secrets
+
+```
+echo "mypassword" | docker secret create db_pass -
+```
+
+Use in service:
+
+```
+--secret db_pass
+```
+
+Stored encrypted in Raft log.
+
+## Configs
+
+Similar to secrets but not encrypted.
+
+Used for:
+
+- Nginx config
+
+- App config
